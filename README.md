@@ -1,6 +1,10 @@
 ## Introduction 
 ![DQN agent](assets/show_result.gif)
-This repository include the code needed to train an agent for [Unity's Banana Collector](https://github.com/Unity-Technologies/ml-agents/blob/master/docs/Learning-Environment-Examples.md) environment.
+This repository includes the code needed to train an agent to solve [Unity's Banana Collector](https://github.com/Unity-Technologies/ml-agents/blob/master/docs/Learning-Environment-Examples.md) environment.
+
+The environment state space has 37 dimensions and four discrete actions are available to the agent. A reward of +1 and -1 is provided for collecting respectively a yellow banana and a blue banana.
+
+In order to solve the environment, an agent must get an average score of +13 over 100 consecutive episodes.
 
 ## Installation
 Clone the repository and initialize the submodules.
