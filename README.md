@@ -1,22 +1,28 @@
-## Introduction 
+# Unity Banana Collector 
 ![DQN agent](assets/show_result.gif)
-This repository includes the code needed to train an agent to solve [Unity's Banana Collector](https://github.com/Unity-Technologies/ml-agents/blob/master/docs/Learning-Environment-Examples.md) environment.
+This repository includes the code needed to train agents to solve Udacity navigation project based on [Unity's Banana Collector](https://github.com/Unity-Technologies/ml-agents/blob/master/docs/Learning-Environment-Examples.md) environment.
 
-The environment state space has 37 dimensions and four discrete actions are available to the agent. A reward of +1 and -1 is provided for collecting respectively a yellow banana and a blue banana.
+The environment has two disctinct scenes. Refer to each specific page for setup, training and results.
 
-In order to solve the environment, an agent must get an average score of +13 over 100 consecutive episodes.
+- [Vector Observation Space](Vector.md)
+- [Visual Observations](Visual.md)
 
 ## Installation
+
 Clone the repository and initialize the submodules.
+
 ```
-git clone https://github.com/O1SA/banana-collector.git
+git clone https://github.com/ostamand/banana-collector.git
 git submodule init 
 git submodule update
 cd banana-collector 
 ```
-Install the project requirements.
+
+Create a virtual environment and activate it.
+
 ```
-pip install -r requirements.txt
+python -m venv banana_0.4.0b
+source banana_0.4.0b/bin/activate
 ```
 
 Install Unity ml-agents.
@@ -26,22 +32,21 @@ git -C ml-agents checkout 0.4.0b
 pip install ml-agents/python/.
 ```
 
-Download the Banana Collectors environment.
+Install the project requirements.
+
 ```
-wget https://s3-us-west-1.amazonaws.com/udacity-drlnd/P1/Banana/Banana_Linux_NoVis.zip
-unzip Banana_Linux_NoVis.zip
-mv Banana_Linux_NoVis/ data/
-rm Banana_Linux_NoVis.zip
+pip install -r requirements.txt
+```
+### Optional 
+
+Install a new kernel.
+
+```
+ipython kernel install --user --name=banana_0.4.0b
 ```
 
-## Training 
-To train the model use this [notebook](Train_DQN.ipynb). If the installation is already completed, skip the Installation section and run all the cells of the notebook. 
+If necessary, to delete the kernel use
 
-The hyperparameters and training characteristics are all grouped in one cell. Refer to the page [report](Report.md) for a description of all the variables as well as their baseline values. All variables can easily be modified before starting the training.
-
-## Results 
-A [trained model](saved_models/model_dqn.ckpt) with an average score over 100 episodes of 16.93 is included in this repository.
-
-For a more complete description of the results, refer to the [report](Report.md) page. 
-
-To visualise the agent, use this [notebook](Result_DQN.ipynb).
+```
+jupyter kernelspec uninstall banana_0.4.0b
+```
