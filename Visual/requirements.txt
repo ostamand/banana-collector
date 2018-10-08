@@ -1,5 +1,5 @@
 mlagents
 ipykernel
-pytorch
+torch
 matplotlib
 numpy

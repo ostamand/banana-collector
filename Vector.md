@@ -16,7 +16,7 @@ rm Banana_Linux_NoVis.zip
 ```
 
 ## Training 
-To train the model use this [notebook](Train_DQN.ipynb). If the installation is already completed, skip the Installation section and run all the cells of the notebook. 
+To train the model use this [notebook](Train_DQN.ipynb). If the installation is already completed, skip the related section and run all the cells of the notebook. 
 
 The hyperparameters and training characteristics are all grouped in one cell. Refer to the page [report](Report.md) for a description of all the variables as well as their baseline values. All variables can easily be modified before starting the training.
 
