@@ -13,9 +13,9 @@ Clone the repository and initialize the submodules.
 
 ```
 git clone https://github.com/ostamand/banana-collector.git
+cd banana-collector 
 git submodule init 
 git submodule update
-cd banana-collector 
 ```
 
 Create a virtual environment and activate it.
