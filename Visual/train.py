@@ -83,6 +83,7 @@ def train(episodes=2000, steps=2000, env_file='data/Banana_x86_x64',
     if 'reloading' in agent.run_params:
         from_start = agent.run_params['from_start']
 
+    avg_scores = []
     scores = []
     last_saved_score = 0
     it = 0 
@@ -91,6 +92,7 @@ def train(episodes=2000, steps=2000, env_file='data/Banana_x86_x64',
         it = agent.run_params['it']
         ep_start = agent.run_params['episodes']
         scores= agent.run_params['scores']
+        avg_scores = agent.run_params['avg_scores']
         last_saved_score = agent.run_params['last_saved_score']
 
     if 'reloading' in agent.run_params:
@@ -102,10 +104,14 @@ def train(episodes=2000, steps=2000, env_file='data/Banana_x86_x64',
 
     # Train agent
     with trange(ep_start, episodes) as t:
+
+        score = 0
         for ep_i in t:
+            
             agent.reset_episode()
             state = env.reset()
             for _ in range(steps):
+
                 # Decay exploration epsilon (linear decay)
                 eps = max(final_eps,ini_eps-(ini_eps-final_eps)/final_exp_it*it)
                 
@@ -113,25 +119,29 @@ def train(episodes=2000, steps=2000, env_file='data/Banana_x86_x64',
                 action = agent.act(state, epsilon=eps)
                 next_state, reward, done = env.step(action)
                 agent.step(state, action, reward, next_state, done)
+                score += reward
                 state = next_state
                 if done:
                     break
                 it+=1 
+            scores.append((ep_i+1, score))
+            t.set_postfix(it=it,epsilon=eps, score=f'{score:.2f}')
 
             # Calculate score using policy epsilon=0.05 and 100 episodes
             if (ep_i+1) % log_every == 0:
-                t.set_postfix(it='...',epsilon='...', score='...')
-                score = evaluate_policy(env, agent)
-                scores.append((ep_i+1, score))
-                t.set_postfix(it=it,epsilon=eps, score=f'{score:.2f}')
+                logger.info('Evaluation current policy...')
+                avg_score = evaluate_policy(env, agent)
+                avg_scores.append((ep_i+1, avg_score))
+                logger.info(f'Average score: {avg_score:.2f}')
 
                 # Save agent if score is greater than threshold & last saved score
-                if score > save_thresh and score > last_saved_score:
+                if avg_score > save_thresh and avg_score > last_saved_score:
                     logger.info('Saving agent...')
                     params = {
                         'episodes': ep_i+1,
                         'it': it,
-                        'scores': scores, 
+                        'avg_scores': avg_scores, 
+                        'scores': scores,
                         'last_saved_score': last_saved_score
                         }
                     agent.save(out_file, run_params=params)
@@ -145,8 +155,9 @@ def train(episodes=2000, steps=2000, env_file='data/Banana_x86_x64',
                     'restore': restore,
                     'from_start': False, 
                     'reloading': True,
-                    'scores': scores, 
-                    'last_saved_score': last_saved_score
+                    'avg_scores': avg_scores, 
+                    'last_saved_score': last_saved_score,
+                    'scores': scores
                     }
                 agent.save('reload.ckpt', run_params=params)
                 env.close()
