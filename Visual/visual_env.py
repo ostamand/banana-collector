@@ -42,6 +42,8 @@ class VisualEnvironment():
         return state
 
     def preprocess(self, state_rgb):
+        #gray = 0.2989 * state_rgb[:,:,0] + 0.5870 * state_rgb[:,:,1] + 0.1140 * state_rgb[:,:,2]
+        #return gray
         im = Image.fromarray(np.uint8(state_rgb*255), 'RGB')
         im_gray = im.convert('L')
         return np.array(im_gray) / 255.0

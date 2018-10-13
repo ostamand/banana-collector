@@ -36,16 +36,14 @@ def evaluate_policy(env, agent, episodes=100, steps=2000, eps=0.05):
         scores.append(score)
     return np.mean(scores)
 
- # Taken from https://github.com/renatolfc/deep-rl-navigation/blob/visual/deeprl/train.py
- # Hack to get around env. memory leak
- # Process is restarted every reload_every episodes 
-def reload_process(ckpt_file):
+# https://stackoverflow.com/questions/31447442/difference-between-os-execl-and-os-execv-in-python
+def reload_process():
     if '--restore' not in sys.argv:
         sys.argv.append('--restore')
-        sys.argv.append(ckpt_file)
-    pdb.set_trace()
-    os.chdir(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-    os.execv('/proc/self/exe', 'python -m deeprl.train'.split() + sys.argv[1:])
+        sys.argv.append(None)
+    idx = sum( [ i if arg=='--restore' else 0 for i, arg in enumerate(sys.argv)] )
+    sys.argv[idx+1] = 'reload.ckpt'
+    os.execv(sys.executable, ['python', __file__, *sys.argv[1:]])
     
 # Train 
 
@@ -61,8 +59,6 @@ def train(episodes=2000, steps=2000, env_file='data/Banana_x86_x64',
       episodes (int): Number of episodes to run 
       steps (int): Maximum number of steps per episode
       env_file (str): Path to environment file
-    
-    
     
     Returns:
         None
@@ -85,13 +81,19 @@ def train(episodes=2000, steps=2000, env_file='data/Banana_x86_x64',
     )
 
     # Restore params from checkpoint if needed 
+    if 'reloading' in agent.run_params:
+        from_start = agent.run_params['from_start']
+
     it = 0 
     ep_start = 0
     if restore:
         logger.info('Restoring checkpoint...')
         if not from_start:
-            it = agent.it-1
-            ep_start = agent.run_params['episodes']-1
+            it = agent.run_params['it']
+            ep_start = agent.run_params['episodes']
+
+    if 'reloading' in agent.run_params:
+        restore = agent.run_params['restore']
             
     # Create Unity Environment
     logger.info('Creating Unity virtual environment...')
@@ -117,7 +119,7 @@ def train(episodes=2000, steps=2000, env_file='data/Banana_x86_x64',
 
             # Calculate score using policy epsilon=0.05 and 100 episodes
             if (ep_i+1) % log_every == 0:
-                logger.info('Evaluating current policy...')
+                t.set_postfix(it='...',epsilon='...', score='...')
                 score = evaluate_policy(env, agent)
                 t.set_postfix(it=it,epsilon=eps, score=f'{score:.2f}')
 
@@ -126,27 +128,28 @@ def train(episodes=2000, steps=2000, env_file='data/Banana_x86_x64',
                 logger.info('Reloading environment...')
                 params = {
                     'episodes': ep_i+1,
-                    'it': it
+                    'it': it,
+                    'restore': restore,
+                    'from_start': False, 
+                    'reloading': True
                     }
-                agent.save(out_file, run_params=params)
+                agent.save('reload.ckpt', run_params=params)
                 env.close()
-                # reload_process()
-
-
-
-                
+                reload_process()
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description = 'Unity - Visual Banana Collector')  
     parser.add_argument("--env_file", help="Location of Unity env. file", default='data/Banana_x86_x64')
     parser.add_argument("--out_file", help="Checkpoint file", default='dbl_dqn_agent.ckpt')
     parser.add_argument("--restore", help="Restore checkpoint")
+    parser.add_argument('--reload_every', help="Reload env. every number of episodes", default=1000)
     args = parser.parse_args()
 
     train(
         env_file=args.env_file,
         out_file=args.out_file,
-        restore=args.restore
+        restore=args.restore,
+        reload_every=int(args.reload_every)
     )
 
 
