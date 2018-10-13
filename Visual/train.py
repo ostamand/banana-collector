@@ -7,7 +7,7 @@ import logging
 
 from model import QNetwork
 from visual_env import VisualEnvironment
-from badaii.rl.agents.double_dqn import Agent
+from badaii.agents.dbl_dqn import Agent
 from badaii import helpers
 
 import pdb 
@@ -43,7 +43,11 @@ def reload_process():
     idx = sum( [ i if arg=='--restore' else 0 for i, arg in enumerate(sys.argv)] )
     sys.argv[idx+1] = 'reload.ckpt'
     os.execv(sys.executable, ['python', __file__, *sys.argv[1:]])
-    
+
+def log(info):
+    print()
+    logger.info(info)
+
 # Train 
 
 def train(episodes=2000, steps=2000, env_file='data/Banana_x86_x64',
@@ -99,13 +103,13 @@ def train(episodes=2000, steps=2000, env_file='data/Banana_x86_x64',
         restore = agent.run_params['restore']
             
     # Create Unity Environment
-    logger.info('Creating Unity virtual environment...')
+    log('Creating Unity virtual environment...')
     env = VisualEnvironment(env_file, action_repeat)
 
     # Train agent
+    print()
     with trange(ep_start, episodes) as t:
 
-        
         for ep_i in t:
             score = 0
             agent.reset_episode()
@@ -129,14 +133,15 @@ def train(episodes=2000, steps=2000, env_file='data/Banana_x86_x64',
 
             # Calculate score using policy epsilon=0.05 and 100 episodes
             if (ep_i+1) % log_every == 0:
-                logger.info('Evaluation current policy...')
+                print()
+                log('Evaluation current policy...')
                 avg_score = evaluate_policy(env, agent)
                 avg_scores.append((ep_i+1, avg_score))
-                logger.info(f'Average score: {avg_score:.2f}')
+                log(f'Average score: {avg_score:.2f}')
 
                 # Save agent if score is greater than threshold & last saved score
                 if avg_score > save_thresh and avg_score > last_saved_score:
-                    logger.info('Saving agent...')
+                    log('Saving agent...')
                     params = {
                         'episodes': ep_i+1,
                         'it': it,
@@ -148,7 +153,7 @@ def train(episodes=2000, steps=2000, env_file='data/Banana_x86_x64',
 
             # Reload the environment to fix memory leak issues 
             if (ep_i+1) % reload_every == 0:
-                logger.info('Reloading environment...')
+                log('Reloading environment...')
                 params = {
                     'episodes': ep_i+1,
                     'it': it,
