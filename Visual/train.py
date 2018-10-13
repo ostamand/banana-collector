@@ -9,40 +9,17 @@ from model import QNetwork
 from visual_env import VisualEnvironment
 from badaii.agents.dbl_dqn import Agent
 from badaii import helpers
+from q_metric import define_Q_metric, QMetric
+from helpers import save, evaluate_policy, reload_process
 
 import pdb 
-
-# Logging configuration
-logger = logging.getLogger(__file__)
-logger.setLevel(logging.DEBUG)
 
 ACTION_SIZE = 4 
 SEED = 0
 
-# Helpers 
-
-def evaluate_policy(env, agent, episodes=100, steps=2000, eps=0.05):
-    scores = []
-    for _ in range(episodes):
-        score = 0
-        state = env.reset()
-        for _ in range(steps):
-            action = agent.act(state, epsilon=eps)
-            state, reward, done = env.step(action)
-            score += reward
-            if done:
-                break
-        scores.append(score)
-    return np.mean(scores)
-
-# https://stackoverflow.com/questions/31447442/difference-between-os-execl-and-os-execv-in-python
-def reload_process():
-    if '--restore' not in sys.argv:
-        sys.argv.append('--restore')
-        sys.argv.append(None)
-    idx = sum( [ i if arg=='--restore' else 0 for i, arg in enumerate(sys.argv)] )
-    sys.argv[idx+1] = 'reload.ckpt'
-    os.execv(sys.executable, ['python', __file__, *sys.argv[1:]])
+# Logging configuration
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 def log(info):
     print()
@@ -67,6 +44,7 @@ def train(episodes=2000, steps=2000, env_file='data/Banana_x86_x64',
         None
     """
     # Define agent 
+    log('Creating agent...')
     m = QNetwork(action_repeat, ACTION_SIZE, SEED)
     m_t = QNetwork(action_repeat, ACTION_SIZE, SEED)
     
@@ -83,31 +61,37 @@ def train(episodes=2000, steps=2000, env_file='data/Banana_x86_x64',
         restore = restore
     )
 
+    # Create Unity Environment
+    log('Creating Unity virtual environment...')
+    env = VisualEnvironment(env_file, action_repeat)
+
     # Restore params from checkpoint if needed 
     if 'reloading' in agent.run_params:
         from_start = agent.run_params['from_start']
 
-    avg_scores = []
-    scores = []
-    last_saved_score = 0
-    it = 0 
-    ep_start = 0
     if restore and not from_start:
+        log('Restoring params...')
         it = agent.run_params['it']
         ep_start = agent.run_params['episodes']
         scores= agent.run_params['scores']
         avg_scores = agent.run_params['avg_scores']
         last_saved_score = agent.run_params['last_saved_score']
+        q_metric = QMetric(agent.run_params['q_metric_states'], m)
+        q_metrics = agent.run_params['q_metrics']
+    else:
+        avg_scores = []
+        scores = []
+        last_saved_score = 0
+        it = 0 
+        ep_start = 0
+        q_metric = define_Q_metric(env, m, 100)
+        q_metrics = []
 
     if 'reloading' in agent.run_params:
         restore = agent.run_params['restore']
             
-    # Create Unity Environment
-    log('Creating Unity virtual environment...')
-    env = VisualEnvironment(env_file, action_repeat)
-
     # Train agent
-    print()
+    log('Training')
     with trange(ep_start, episodes) as t:
 
         for ep_i in t:
@@ -128,8 +112,11 @@ def train(episodes=2000, steps=2000, env_file='data/Banana_x86_x64',
                 if done:
                     break
                 it+=1 
+
+            # Update metrics  
+            q_metrics.append((ep_i+1, q_metric.evaluate()))
             scores.append((ep_i+1, score))
-            t.set_postfix(it=it,epsilon=f'{eps:.3f}', score=f'{score:.2f}')
+            t.set_postfix(it=it,epsilon=f'{eps:.3f}', q_eval= f'{q_metrics[-1][1]:.2f}', score=f'{score:.2f}')
 
             # Calculate score using policy epsilon=0.05 and 100 episodes
             if (ep_i+1) % log_every == 0:
@@ -141,15 +128,9 @@ def train(episodes=2000, steps=2000, env_file='data/Banana_x86_x64',
 
                 # Save agent if score is greater than threshold & last saved score
                 if avg_score > save_thresh and avg_score > last_saved_score:
-                    log('Saving agent...')
-                    params = {
-                        'episodes': ep_i+1,
-                        'it': it,
-                        'avg_scores': avg_scores, 
-                        'scores': scores,
-                        'last_saved_score': last_saved_score
-                        }
-                    agent.save(out_file, run_params=params)
+                    save(agent, out_file, 
+                         ep_i+1, it, avg_scores, scores, q_metrics, last_saved_score
+                    )
 
             # Reload the environment to fix memory leak issues 
             if (ep_i+1) % reload_every == 0:
@@ -162,11 +143,20 @@ def train(episodes=2000, steps=2000, env_file='data/Banana_x86_x64',
                     'reloading': True,
                     'avg_scores': avg_scores, 
                     'last_saved_score': last_saved_score,
-                    'scores': scores
+                    'scores': scores,
+                    'q_metric_states': q_metric.states.cpu().numpy(),
+                    'q_metrics': q_metrics
                     }
                 agent.save('reload.ckpt', run_params=params)
                 env.close()
                 reload_process()
+
+    # Training done
+    # Save if not already done
+    if not os.path.isfile(out_file):
+        save(agent, out_file, 
+             ep_i+1, it, avg_scores, scores, q_metrics, last_saved_score
+        )
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description = 'Unity - Visual Banana Collector')  
