@@ -4,7 +4,6 @@ from tqdm import trange
 import sys
 import os
 import logging
-#import matplotlib.pyplot as plt
 
 from model import QNetwork
 from visual_env import VisualEnvironment
@@ -24,7 +23,7 @@ SEED = 0
 
 def evaluate_policy(env, agent, episodes=100, steps=2000, eps=0.05):
     scores = []
-    for i in range(episodes):
+    for _ in range(episodes):
         score = 0
         state = env.reset()
         for _ in range(steps):
@@ -52,7 +51,7 @@ def train(episodes=2000, steps=2000, env_file='data/Banana_x86_x64',
           reload_every=1000, log_every=10, action_repeat=4, update_frequency=1, 
           batch_size=32, gamma=0.99,lrate=2.5e-4, tau=0.05,
           replay_mem_size=100000, replay_start_size=5000, 
-          ini_eps=1.0, final_eps=0.1, final_exp_it=200000):
+          ini_eps=1.0, final_eps=0.1, final_exp_it=200000, save_thresh=5.0):
     """Train Double DQN
     
     Args:
@@ -84,13 +83,15 @@ def train(episodes=2000, steps=2000, env_file='data/Banana_x86_x64',
     if 'reloading' in agent.run_params:
         from_start = agent.run_params['from_start']
 
+    scores = []
+    last_saved_score = 0
     it = 0 
     ep_start = 0
-    if restore:
-        logger.info('Restoring checkpoint...')
-        if not from_start:
-            it = agent.run_params['it']
-            ep_start = agent.run_params['episodes']
+    if restore and not from_start:
+        it = agent.run_params['it']
+        ep_start = agent.run_params['episodes']
+        scores= agent.run_params['scores']
+        last_saved_score = agent.run_params['last_saved_score']
 
     if 'reloading' in agent.run_params:
         restore = agent.run_params['restore']
@@ -121,7 +122,19 @@ def train(episodes=2000, steps=2000, env_file='data/Banana_x86_x64',
             if (ep_i+1) % log_every == 0:
                 t.set_postfix(it='...',epsilon='...', score='...')
                 score = evaluate_policy(env, agent)
+                scores.append((ep_i+1, score))
                 t.set_postfix(it=it,epsilon=eps, score=f'{score:.2f}')
+
+                # Save agent if score is greater than threshold & last saved score
+                if score > save_thresh and score > last_saved_score:
+                    logger.info('Saving agent...')
+                    params = {
+                        'episodes': ep_i+1,
+                        'it': it,
+                        'scores': scores, 
+                        'last_saved_score': last_saved_score
+                        }
+                    agent.save(out_file, run_params=params)
 
             # Reload the environment to fix memory leak issues 
             if (ep_i+1) % reload_every == 0:
@@ -131,7 +144,9 @@ def train(episodes=2000, steps=2000, env_file='data/Banana_x86_x64',
                     'it': it,
                     'restore': restore,
                     'from_start': False, 
-                    'reloading': True
+                    'reloading': True,
+                    'scores': scores, 
+                    'last_saved_score': last_saved_score
                     }
                 agent.save('reload.ckpt', run_params=params)
                 env.close()
@@ -143,13 +158,19 @@ if __name__ == '__main__':
     parser.add_argument("--out_file", help="Checkpoint file", default='dbl_dqn_agent.ckpt')
     parser.add_argument("--restore", help="Restore checkpoint")
     parser.add_argument('--reload_every', help="Reload env. every number of episodes", default=1000)
+    parser.add_argument("--log_every", help="Log metric every number of episodes", default=10)
+    parser.add_argument("--episodes", help="Number of episodes to run", default=1000)
+    parser.add_argument("--save_thresh", help="Saving threshold", default=10.0)
     args = parser.parse_args()
 
     train(
         env_file=args.env_file,
         out_file=args.out_file,
         restore=args.restore,
-        reload_every=int(args.reload_every)
+        reload_every=int(args.reload_every),
+        log_every=int(args.log_every),
+        episodes=int(args.episodes),
+        save_thresh=float(args.save_thresh)
     )
 
 
