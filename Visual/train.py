@@ -13,7 +13,7 @@ from badaii import helpers
 import pdb 
 
 # Logging configuration
-logger = logging.getLogger(__name__)
+logger = logging.getLogger(__file__)
 logger.setLevel(logging.DEBUG)
 
 ACTION_SIZE = 4 
@@ -105,9 +105,9 @@ def train(episodes=2000, steps=2000, env_file='data/Banana_x86_x64',
     # Train agent
     with trange(ep_start, episodes) as t:
 
-        score = 0
+        
         for ep_i in t:
-            
+            score = 0
             agent.reset_episode()
             state = env.reset()
             for _ in range(steps):
@@ -125,7 +125,7 @@ def train(episodes=2000, steps=2000, env_file='data/Banana_x86_x64',
                     break
                 it+=1 
             scores.append((ep_i+1, score))
-            t.set_postfix(it=it,epsilon=eps, score=f'{score:.2f}')
+            t.set_postfix(it=it,epsilon=f'{eps:.3f}', score=f'{score:.2f}')
 
             # Calculate score using policy epsilon=0.05 and 100 episodes
             if (ep_i+1) % log_every == 0:
