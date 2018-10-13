@@ -27,7 +27,7 @@ def evaluate_policy(env, agent, episodes=100, steps=2000, eps=0.05):
     for i in range(episodes):
         score = 0
         state = env.reset()
-        for step_i in range(steps):
+        for _ in range(steps):
             action = agent.act(state, epsilon=eps)
             state, reward, done = env.step(action)
             score += reward
@@ -39,16 +39,14 @@ def evaluate_policy(env, agent, episodes=100, steps=2000, eps=0.05):
  # Taken from https://github.com/renatolfc/deep-rl-navigation/blob/visual/deeprl/train.py
  # Hack to get around env. memory leak
  # Process is restarted every reload_every episodes 
-def reload_process():
-    if '--load-checkpoint' not in sys.argv:
-        sys.argv.append('--load-checkpoint')
+def reload_process(ckpt_file):
+    if '--restore' not in sys.argv:
+        sys.argv.append('--restore')
+        sys.argv.append(ckpt_file)
+    pdb.set_trace()
     os.chdir(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
     os.execv('/proc/self/exe', 'python -m deeprl.train'.split() + sys.argv[1:])
     
-#if reload_every and i_episode and (i_episode + 1) % reload_every == 0:
-#    env.close()
-#    reload_process()
-
 # Train 
 
 def train(episodes=2000, steps=2000, env_file='data/Banana_x86_x64',
@@ -70,8 +68,8 @@ def train(episodes=2000, steps=2000, env_file='data/Banana_x86_x64',
         None
     """
     # Define agent 
-    m = QNetwork(1, ACTION_SIZE, SEED)
-    m_t = QNetwork(1, ACTION_SIZE, SEED)
+    m = QNetwork(action_repeat, ACTION_SIZE, SEED)
+    m_t = QNetwork(action_repeat, ACTION_SIZE, SEED)
     
     agent = Agent(
         m, m_t,
@@ -93,7 +91,7 @@ def train(episodes=2000, steps=2000, env_file='data/Banana_x86_x64',
         logger.info('Restoring checkpoint...')
         if not from_start:
             it = agent.it-1
-            ep_start = agent.params['ep_start']-1
+            ep_start = agent.run_params['episodes']-1
             
     # Create Unity Environment
     logger.info('Creating Unity virtual environment...')
@@ -104,7 +102,7 @@ def train(episodes=2000, steps=2000, env_file='data/Banana_x86_x64',
         for ep_i in t:
             agent.reset_episode()
             state = env.reset()
-            for step_i in range(steps):
+            for _ in range(steps):
                 # Decay exploration epsilon (linear decay)
                 eps = max(final_eps,ini_eps-(ini_eps-final_eps)/final_exp_it*it)
                 
@@ -115,21 +113,40 @@ def train(episodes=2000, steps=2000, env_file='data/Banana_x86_x64',
                 state = next_state
                 if done:
                     break
-                
                 it+=1 
-                if (ep_i+1) % log_every == 0:
-                    # Calculate score using policy epsilon=0.05 and 100 episodes
-                    score = evaluate_policy(env, agent)
-                    
-                    t.set_postfix(it=it,epsilon=eps, score=f'{score:.2f}')
+
+            # Calculate score using policy epsilon=0.05 and 100 episodes
+            if (ep_i+1) % log_every == 0:
+                logger.info('Evaluating current policy...')
+                score = evaluate_policy(env, agent)
+                t.set_postfix(it=it,epsilon=eps, score=f'{score:.2f}')
+
+            # Reload the environment to fix memory leak issues 
+            if (ep_i+1) % reload_every == 0:
+                logger.info('Reloading environment...')
+                params = {
+                    'episodes': ep_i+1,
+                    'it': it
+                    }
+                agent.save(out_file, run_params=params)
+                env.close()
+                # reload_process()
+
+
+
+                
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description = 'Unity - Visual Banana Collector')  
     parser.add_argument("--env_file", help="Location of Unity env. file", default='data/Banana_x86_x64')
+    parser.add_argument("--out_file", help="Checkpoint file", default='dbl_dqn_agent.ckpt')
+    parser.add_argument("--restore", help="Restore checkpoint")
     args = parser.parse_args()
 
     train(
-        env_file=args.env_file
+        env_file=args.env_file,
+        out_file=args.out_file,
+        restore=args.restore
     )
 
 

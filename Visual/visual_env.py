@@ -14,23 +14,37 @@ class VisualEnvironment():
         self.action_size = brain.vector_action_space_size
         
     def step(self, action):
+        next_state = np.zeros((1, self.action_rpt, 84, 84))            
         reward = 0
-        for _ in range(self.action_rpt):
+        for i in range(self.action_rpt):
             env_info = self.env.step(action)[self.brain_name]
+            next_state[0,i] = self.preprocess(env_info.visual_observations[0].reshape(84, 84, 3))
             r = env_info.rewards[0]
+            done = env_info.local_done[0]
             reward += r
-        next_state = env_info.visual_observations[0].reshape(1,3,84,84)
-        next_state = self.preprocess(next_state[0])
-        done = env_info.local_done[0]
+            if done: 
+                break
         return (next_state, reward, done)
     
     def reset(self, train=True):
+        state = np.zeros((1, self.action_rpt, 84, 84))
+
+        # Reset environment 
         env_info = self.env.reset(train_mode=train)[self.brain_name]
-        state = env_info.visual_observations[0].reshape(1,3,84,84)
-        return self.preprocess(state[0])
+        state[0,0] = self.preprocess(env_info.visual_observations[0].reshape(84, 84, 3))
+
+        # Random first action repeated action_rpt - 1 times
+        action = np.random.randint(0, 4)
+        for i in range(self.action_rpt-1):
+            env_info = self.env.step(action)[self.brain_name]
+            state[0,i+1] = self.preprocess(env_info.visual_observations[0].reshape(84, 84, 3))
+
+        return state
 
     def preprocess(self, state_rgb):
-        im = Image.fromarray(np.uint8(state_rgb*255).reshape(84,84,3), 'RGB')
+        im = Image.fromarray(np.uint8(state_rgb*255), 'RGB')
         im_gray = im.convert('L')
-        a = np.array(im_gray)
-        return a.reshape(1, 1, a.shape[0],a.shape[1]) / 255.0
+        return np.array(im_gray) / 255.0
+
+    def close(self):
+        self.env.close()
