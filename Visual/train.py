@@ -68,7 +68,7 @@ def train(episodes=2000, steps=2000, env_file='data/Banana_x86_x64',
           batch_size=32, gamma=0.99,lrate=2.5e-4, tau=0.05,
           replay_mem_size=100000, replay_start_size=5000, 
           ini_eps=1.0, final_eps=0.1, final_exp_ep=200000, save_thresh=5.0,
-          prio=False, min_priority=0.1, alpha=0.1):
+          prio=False, min_priority=0.1, alpha=0.1, final_beta=1.0, ini_beta=0.4):
     """Train Double DQN
     
     Args:
@@ -135,13 +135,15 @@ def train(episodes=2000, steps=2000, env_file='data/Banana_x86_x64',
             state = env.reset()
 
             # Decay exploration epsilon (linear decay)
+            pdb.set_trace()
             eps = max(final_eps,ini_eps-(ini_eps-final_eps)/final_exp_ep*ep_i)
+            bta = min(final_beta,ini_beta-(ini_beta-final_beta)/final_exp_ep*ep_i)
 
             for _ in range(steps):
                 # Step agent 
                 action = agent.act(state, epsilon=eps)
                 next_state, reward, done = env.step(action)
-                agent.step(state, action, reward, next_state, done)
+                agent.step(state, action, reward, next_state, done, beta=bta)
                 score += reward
                 state = next_state
                 if done:
@@ -205,6 +207,8 @@ if __name__ == '__main__':
     parser.add_argument("--final_exp_ep", help="final exploaration episode", default=2500)
     parser.add_argument("--ini_eps", help="initial epsilon", default=1.0)
     parser.add_argument("--final_eps", help="final epsilon", default=0.1)
+    parser.add_argument("--ini_beta", help="initial beta", default=0.4)
+    parser.add_argument("--final_beta", help="final beta", default=1.0)
     parser.add_argument("--prio", help="With or without prioritized experience replay", default=False)
     args = parser.parse_args()
 
