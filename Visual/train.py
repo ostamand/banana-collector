@@ -8,6 +8,7 @@ import logging
 from model import QNetwork
 from visual_env import VisualEnvironment
 from badaii.agents.dbl_dqn import Agent
+from badaii.agents.p_dbl_dqn import Agent as PrioAgent
 from q_metric import define_Q_metric, QMetric
 
 import pdb 
@@ -66,7 +67,8 @@ def train(episodes=2000, steps=2000, env_file='data/Banana_x86_x64',
           reload_every=1000, log_every=10, action_repeat=4, update_frequency=1, 
           batch_size=32, gamma=0.99,lrate=2.5e-4, tau=0.05,
           replay_mem_size=100000, replay_start_size=5000, 
-          ini_eps=1.0, final_eps=0.1, final_exp_it=200000, save_thresh=5.0):
+          ini_eps=1.0, final_eps=0.1, final_exp_it=200000, save_thresh=5.0,
+          prio=False, min_priority=0.1, alpha=0.1):
     """Train Double DQN
     
     Args:
@@ -82,18 +84,17 @@ def train(episodes=2000, steps=2000, env_file='data/Banana_x86_x64',
     m = QNetwork(action_repeat, ACTION_SIZE, SEED)
     m_t = QNetwork(action_repeat, ACTION_SIZE, SEED)
     
-    agent = Agent(
-        m, m_t,
-        action_size=ACTION_SIZE, 
-        seed=SEED,
-        batch_size=batch_size,
-        gamma = gamma,
-        update_frequency = update_frequency,
-        lrate = lrate,
-        replay_size = replay_mem_size,
-        tau = tau,
-        restore = restore
-    )
+    if prio:
+        agent = PrioAgent(m, m_t, ACTION_SIZE, 
+            seed=SEED, batch_size=batch_size,gamma = gamma, update_frequency = update_frequency,
+            lrate = lrate, replay_size = replay_mem_size, tau = tau, restore = restore, 
+            min_priority = min_priority, alpha = alpha
+        )
+    else:
+        agent = Agent(m, m_t, ACTION_SIZE,    
+            seed=SEED, batch_size=batch_size, gamma = gamma, update_frequency = update_frequency,
+            lrate = lrate, replay_size = replay_mem_size, tau = tau, restore = restore
+        )
 
     # Create Unity Environment
     log('Creating Unity virtual environment...'); print()
@@ -202,6 +203,7 @@ if __name__ == '__main__':
     parser.add_argument("--episodes", help="Number of episodes to run", default=1000)
     parser.add_argument("--save_thresh", help="Saving threshold", default=10.0)
     parser.add_argument("--final_exp_it", help="final exploaration iteration", default=200000)
+    parser.add_argument("--prio", help="With or without prioritized experience replay", default=False)
     args = parser.parse_args()
 
     train(
@@ -212,7 +214,8 @@ if __name__ == '__main__':
         log_every=int(args.log_every),
         episodes=int(args.episodes),
         save_thresh=float(args.save_thresh), 
-        final_exp_it=int(args.final_exp_it)
+        final_exp_it=int(args.final_exp_it),
+        prio=bool(args.prio)
     )
 
 
