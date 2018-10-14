@@ -28,12 +28,5 @@ def evaluate_policy(env, agent, episodes=100, steps=2000, eps=0.05):
         scores.append(score)
     return np.mean(scores)
 
-# https://stackoverflow.com/questions/31447442/difference-between-os-execl-and-os-execv-in-python
-def reload_process():
-    if '--restore' not in sys.argv:
-        sys.argv.append('--restore')
-        sys.argv.append(None)
-    idx = sum( [ i if arg=='--restore' else 0 for i, arg in enumerate(sys.argv)] )
-    sys.argv[idx+1] = 'reload.ckpt'
-    os.execv(sys.executable, ['python', __file__, *sys.argv[1:]])
+
 

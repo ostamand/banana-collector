@@ -10,20 +10,31 @@ from visual_env import VisualEnvironment
 from badaii.agents.dbl_dqn import Agent
 from badaii import helpers
 from q_metric import define_Q_metric, QMetric
-from helpers import save, evaluate_policy, reload_process
+from helpers import save, evaluate_policy
 
 import pdb 
 
 ACTION_SIZE = 4 
 SEED = 0
 
-# Logging configuration
+# Logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 def log(info):
     print()
     logger.info(info)
+
+# Reload process
+
+# https://stackoverflow.com/questions/31447442/difference-between-os-execl-and-os-execv-in-python
+def reload_process():
+    if '--restore' not in sys.argv:
+        sys.argv.append('--restore')
+        sys.argv.append(None)
+    idx = sum( [ i if arg=='--restore' else 0 for i, arg in enumerate(sys.argv)] )
+    sys.argv[idx+1] = 'reload.ckpt'
+    os.execv(sys.executable, ['python', __file__, *sys.argv[1:]])
 
 # Train 
 
@@ -91,7 +102,7 @@ def train(episodes=2000, steps=2000, env_file='data/Banana_x86_x64',
         restore = agent.run_params['restore']
             
     # Train agent
-    log('Training')
+    log('Training'); print()
     with trange(ep_start, episodes) as t:
 
         for ep_i in t:
@@ -124,7 +135,7 @@ def train(episodes=2000, steps=2000, env_file='data/Banana_x86_x64',
                 log('Evaluation current policy...')
                 avg_score = evaluate_policy(env, agent)
                 avg_scores.append((ep_i+1, avg_score))
-                log(f'Average score: {avg_score:.2f}')
+                log(f'Average score: {avg_score:.2f}'); print()
 
                 # Save agent if score is greater than threshold & last saved score
                 if avg_score > save_thresh and avg_score > last_saved_score:
@@ -167,6 +178,7 @@ if __name__ == '__main__':
     parser.add_argument("--log_every", help="Log metric every number of episodes", default=10)
     parser.add_argument("--episodes", help="Number of episodes to run", default=1000)
     parser.add_argument("--save_thresh", help="Saving threshold", default=10.0)
+    parser.add_argument("--final_exp_it", help="final exploaration iteration", default=200000)
     args = parser.parse_args()
 
     train(
@@ -176,7 +188,8 @@ if __name__ == '__main__':
         reload_every=int(args.reload_every),
         log_every=int(args.log_every),
         episodes=int(args.episodes),
-        save_thresh=float(args.save_thresh)
+        save_thresh=float(args.save_thresh), 
+        final_exp_it=int(args.final_exp_it)
     )
 
 
