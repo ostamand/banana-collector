@@ -10,7 +10,6 @@ from visual_env import VisualEnvironment
 from badaii.agents.dbl_dqn import Agent
 from badaii import helpers
 from q_metric import define_Q_metric, QMetric
-from helpers import save, evaluate_policy
 
 import pdb 
 
@@ -25,7 +24,33 @@ def log(info):
     print()
     logger.info(info)
 
-# Reload process
+# Helpers
+
+def save(agent, out_file, ep, it, avg_scores, scores, q_metrics, last_saved_score):
+    log('Saving agent...')
+    params = { 
+        'episodes': ep,
+        'it': it,
+        'avg_scores': avg_scores, 
+        'scores': scores,
+        'q_metrics': q_metrics,
+        'last_saved_score': last_saved_score
+        }
+    agent.save(out_file, run_params=params)
+
+def evaluate_policy(env, agent, episodes=100, steps=2000, eps=0.05):
+    scores = []
+    for _ in range(episodes):
+        score = 0
+        state = env.reset()
+        for _ in range(steps):
+            action = agent.act(state, epsilon=eps)
+            state, reward, done = env.step(action)
+            score += reward
+            if done:
+                break
+        scores.append(score)
+    return np.mean(scores)
 
 # https://stackoverflow.com/questions/31447442/difference-between-os-execl-and-os-execv-in-python
 def reload_process():
@@ -37,7 +62,6 @@ def reload_process():
     os.execv(sys.executable, ['python', __file__, *sys.argv[1:]])
 
 # Train 
-
 def train(episodes=2000, steps=2000, env_file='data/Banana_x86_x64',
           out_file=None, restore=None, from_start=True, 
           reload_every=1000, log_every=10, action_repeat=4, update_frequency=1, 
@@ -73,7 +97,7 @@ def train(episodes=2000, steps=2000, env_file='data/Banana_x86_x64',
     )
 
     # Create Unity Environment
-    log('Creating Unity virtual environment...')
+    log('Creating Unity virtual environment...'); print()
     env = VisualEnvironment(env_file, action_repeat)
 
     # Restore params from checkpoint if needed 
@@ -132,7 +156,7 @@ def train(episodes=2000, steps=2000, env_file='data/Banana_x86_x64',
             # Calculate score using policy epsilon=0.05 and 100 episodes
             if (ep_i+1) % log_every == 0:
                 print()
-                log('Evaluation current policy...')
+                log('Evaluating current policy...')
                 avg_score = evaluate_policy(env, agent)
                 avg_scores.append((ep_i+1, avg_score))
                 log(f'Average score: {avg_score:.2f}'); print()
@@ -166,7 +190,7 @@ def train(episodes=2000, steps=2000, env_file='data/Banana_x86_x64',
     # Save if not already done
     if not os.path.isfile(out_file):
         save(agent, out_file, 
-             ep_i+1, it, avg_scores, scores, q_metrics, last_saved_score
+             episodes, it, avg_scores, scores, q_metrics, last_saved_score
         )
 
 if __name__ == '__main__':
