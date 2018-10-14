@@ -8,7 +8,6 @@ import logging
 from model import QNetwork
 from visual_env import VisualEnvironment
 from badaii.agents.dbl_dqn import Agent
-from badaii import helpers
 from q_metric import define_Q_metric, QMetric
 
 import pdb 
