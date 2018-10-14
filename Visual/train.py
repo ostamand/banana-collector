@@ -135,7 +135,6 @@ def train(episodes=2000, steps=2000, env_file='data/Banana_x86_x64',
             state = env.reset()
 
             # Decay exploration epsilon (linear decay)
-            pdb.set_trace()
             eps = max(final_eps,ini_eps-(ini_eps-final_eps)/final_exp_ep*ep_i)
             bta = min(final_beta,ini_beta-(ini_beta-final_beta)/final_exp_ep*ep_i)
 
