@@ -1,6 +1,5 @@
 import numpy as np
 import argparse
-from tqdm import trange
 import sys
 import os
 import logging
@@ -19,10 +18,6 @@ SEED = 0
 # Logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
-
-def log(info):
-    print()
-    logger.info(info)
 
 # Helpers
 
@@ -62,31 +57,54 @@ def reload_process():
     os.execv(sys.executable, ['python', __file__, *sys.argv[1:]])
 
 # Train 
-def train(episodes=2000, steps=2000, env_file='data/Banana_x86_x64',
-          out_file=None, restore=None, from_start=True, 
-          reload_every=1000, log_every=10, action_repeat=4, update_frequency=1, 
-          batch_size=32, gamma=0.99,lrate=2.5e-4, tau=0.05,
-          replay_mem_size=100000, replay_start_size=5000, 
-          ini_eps=1.0, final_eps=0.1, final_exp_ep=200000, save_thresh=5.0,
-          prio=False, min_priority=0.1, alpha=0.1, final_beta=1.0, ini_beta=0.4):
+def train(episodes=2000, 
+          steps=2000, 
+          env_file='data/Banana_x86_x64',
+          out_file=None, 
+          restore=None, 
+          from_start=True, 
+          reload_every=1000, 
+          log_every=10, 
+          action_repeat=4, 
+          update_frequency=1, 
+          batch_size=32, 
+          gamma=0.99,
+          lrate=5.0e-4, 
+          tau=0.05,
+          replay_mem_size=100000, 
+          replay_start_size=5000, 
+          ini_eps=1.0, 
+          final_eps=0.02, 
+          final_exp_ep=200000, 
+          save_thresh=5.0,
+          prio=False, 
+          min_priority=1e-6, 
+          alpha=0.1, 
+          final_beta=1.0, 
+          ini_beta=0.4
+           ):
     """Train Double DQN
     
     Args:
       episodes (int): Number of episodes to run 
       steps (int): Maximum number of steps per episode
       env_file (str): Path to environment file
+      out_file (str): Output checkpoint name
+      restore (str): Restore checkpoint before starting the training 
+      from_start (bool): Force the training to start from the start
+      reload_evey (int): Reload environment every # of episodes
     
     Returns:
         None
     """
     # Define agent 
-    log('Creating agent...')
+    logger.info('Creating agent...')
     m = QNetwork(action_repeat, ACTION_SIZE, SEED)
     m_t = QNetwork(action_repeat, ACTION_SIZE, SEED)
     
     if prio:
         agent = PrioAgent(m, m_t, ACTION_SIZE, 
-            seed=SEED, batch_size=batch_size,gamma = gamma, update_frequency = update_frequency,
+            seed=SEED, batch_size=batch_size, gamma = gamma, update_frequency = update_frequency,
             lrate = lrate, replay_size = replay_mem_size, tau = tau, restore = restore, 
             min_priority = min_priority, alpha = alpha
         )
@@ -97,7 +115,7 @@ def train(episodes=2000, steps=2000, env_file='data/Banana_x86_x64',
         )
 
     # Create Unity Environment
-    log('Creating Unity virtual environment...'); print()
+    logger.info('Creating Unity virtual environment...')
     env = VisualEnvironment(env_file, action_repeat)
 
     # Restore params from checkpoint if needed 
@@ -105,7 +123,7 @@ def train(episodes=2000, steps=2000, env_file='data/Banana_x86_x64',
         from_start = agent.run_params['from_start']
 
     if restore and not from_start:
-        log('Restoring params...')
+        logger.info('Restoring params...')
         it = agent.run_params['it']
         ep_start = agent.run_params['episodes']
         scores= agent.run_params['scores']
@@ -126,10 +144,8 @@ def train(episodes=2000, steps=2000, env_file='data/Banana_x86_x64',
         restore = agent.run_params['restore']
             
     # Train agent
-    log('Training'); print()
-    with trange(ep_start, episodes) as t:
-
-        for ep_i in t:
+    logger.info('Training'); 
+    for ep_i in range(ep_start, episodes):
             score = 0
             agent.reset_episode()
             state = env.reset()
@@ -152,15 +168,14 @@ def train(episodes=2000, steps=2000, env_file='data/Banana_x86_x64',
             # Update metrics  
             q_metrics.append((ep_i+1, q_metric.evaluate()))
             scores.append((ep_i+1, score))
-            t.set_postfix(it=it,epsilon=f'{eps:.3f}', q_eval= f'{q_metrics[-1][1]:.2f}', score=f'{score:.2f}')
+            logger.info(f'it={it}, epsilon={eps:.3f}, q_eval={q_metrics[-1][1]:.2f}, score={score:.2f}')
 
             # Calculate score using policy epsilon=0.05 and 100 episodes
             if (ep_i+1) % log_every == 0:
-                print()
-                log('Evaluating current policy...')
+                logger.info('Evaluating current policy...')
                 avg_score = evaluate_policy(env, agent)
                 avg_scores.append((ep_i+1, avg_score))
-                log(f'Average score: {avg_score:.2f}'); print()
+                logger.info(f'Average score: {avg_score:.2f}')
 
                 # Save agent if score is greater than threshold & last saved score
                 if avg_score > save_thresh and avg_score > last_saved_score:
@@ -170,7 +185,7 @@ def train(episodes=2000, steps=2000, env_file='data/Banana_x86_x64',
 
             # Reload the environment to fix memory leak issues 
             if (ep_i+1) % reload_every == 0:
-                log('Reloading environment...')
+                logger.info('Reloading environment...')
                 params = {
                     'episodes': ep_i+1,
                     'it': it,
