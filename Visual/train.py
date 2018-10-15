@@ -17,7 +17,7 @@ ACTION_SIZE = 4
 SEED = 0
 
 # Logging
-logger = logging.getLogger(__name__)
+logger = logging.getLogger(__file__)
 logger.setLevel(logging.DEBUG)
 
 # Helpers
@@ -65,18 +65,18 @@ def train(episodes=2000,
           from_start=True, 
           reload_every=1000, 
           ckpt_every=1000,
-          log_every=10, 
+          log_every=100, 
           action_repeat=4, 
           update_frequency=1, 
           batch_size=32, 
           gamma=0.99,
           lrate=5.0e-4, 
           tau=0.05,
-          replay_mem_size=100000, 
+          replay_mem_size=500000, 
           replay_start_size=5000, 
           ini_eps=1.0, 
           final_eps=0.02, 
-          final_exp_ep=200000, 
+          final_exp_ep=2000, 
           save_thresh=5.0,
           prio=False, 
           min_priority=1e-6, 
@@ -91,7 +91,7 @@ def train(episodes=2000,
       steps (int): Maximum number of steps per episode
       env_file (str): Path to environment file
       out_file (str): Output checkpoint name
-      restore (str): Restore checkpoint before starting the training 
+      restore (str): Restore the specified checkpoint before starting the training 
       from_start (bool): Force the training to start from the start
       reload_evey (int): Reload environment every # of episodes
     
@@ -169,7 +169,7 @@ def train(episodes=2000,
             # Update metrics  
             q_metrics.append((ep_i+1, q_metric.evaluate()))
             scores.append((ep_i+1, score))
-            logger.info(f'it={it}, epsilon={eps:.3f}, q_eval={q_metrics[-1][1]:.2f}, score={score:.2f}')
+            logger.info(f'ep={ep_i+1}/{episodes}, it={it}, epsilon={eps:.3f}, q_eval={q_metrics[-1][1]:.2f}, score={score:.2f}')
 
             # Calculate score using policy epsilon=0.05 and 100 episodes
             if (ep_i+1) % log_every == 0:
@@ -230,6 +230,7 @@ if __name__ == '__main__':
     parser.add_argument("--ini_beta", help="initial beta", default=0.4)
     parser.add_argument("--final_beta", help="final beta", default=1.0)
     parser.add_argument("--prio", help="With or without prioritized experience replay", default=False)
+    parser.add_argument("--lrate", help="Learning rate", default=5.0e-4)
     args = parser.parse_args()
 
     train(
@@ -244,7 +245,8 @@ if __name__ == '__main__':
         final_exp_ep=int(args.final_exp_ep),
         prio=bool(args.prio),
         ini_eps=float(args.ini_eps),
-        final_eps=float(args.final_eps)
+        final_eps=float(args.final_eps),
+        lrate=float(5.0e-4)
     )
 
 
