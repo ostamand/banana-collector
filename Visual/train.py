@@ -3,6 +3,7 @@ import argparse
 import sys
 import os
 import logging
+import datetime 
 
 from model import QNetwork
 from visual_env import VisualEnvironment
@@ -22,7 +23,6 @@ logger.setLevel(logging.DEBUG)
 # Helpers
 
 def save(agent, out_file, ep, it, avg_scores, scores, q_metrics, last_saved_score):
-    log('Saving agent...')
     params = { 
         'episodes': ep,
         'it': it,
@@ -64,6 +64,7 @@ def train(episodes=2000,
           restore=None, 
           from_start=True, 
           reload_every=1000, 
+          ckpt_every=1000,
           log_every=10, 
           action_repeat=4, 
           update_frequency=1, 
@@ -144,7 +145,7 @@ def train(episodes=2000,
         restore = agent.run_params['restore']
             
     # Train agent
-    logger.info('Training'); 
+    logger.info('Training')
     for ep_i in range(ep_start, episodes):
             score = 0
             agent.reset_episode()
@@ -179,9 +180,20 @@ def train(episodes=2000,
 
                 # Save agent if score is greater than threshold & last saved score
                 if avg_score > save_thresh and avg_score > last_saved_score:
+                    logger.info("Saving checkpoint...")
                     save(agent, out_file, 
                          ep_i+1, it, avg_scores, scores, q_metrics, last_saved_score
                     )
+
+            # Save checkpoint if needed
+            if (ep_i+1) % ckpt_every == 0:  
+                s = os.path.splitext(out_file)
+                tm = datetime.datetime.today().strftime('%Y-%m-%d_%H-%M-%S')
+                filename = f'{s[0]}_{tm}{s[1]}'
+                logger.info(f'Saving checkpoint {filename}...')
+                save(
+                    agent, filename, ep_i+1, it, avg_scores, scores, q_metrics, last_saved_score
+                )
 
             # Reload the environment to fix memory leak issues 
             if (ep_i+1) % reload_every == 0:
@@ -202,19 +214,13 @@ def train(episodes=2000,
                 env.close()
                 reload_process()
 
-    # Training done
-    # Save if not already done
-    if not os.path.isfile(out_file):
-        save(agent, out_file, 
-             episodes, it, avg_scores, scores, q_metrics, last_saved_score
-        )
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description = 'Unity - Visual Banana Collector')  
     parser.add_argument("--env_file", help="Location of Unity env. file", default='data/Banana_x86_x64')
     parser.add_argument("--out_file", help="Checkpoint file", default='dbl_dqn_agent.ckpt')
     parser.add_argument("--restore", help="Restore checkpoint")
-    parser.add_argument('--reload_every', help="Reload env. every number of episodes", default=1000)
+    parser.add_argument('--reload_every', help="Reload env. every x episodes", default=1000)
+    parser.add_argument("--ckpt_every", help="Save checkpoint every x episodes", default=1000)
     parser.add_argument("--log_every", help="Log metric every number of episodes", default=10)
     parser.add_argument("--episodes", help="Number of episodes to run", default=1000)
     parser.add_argument("--save_thresh", help="Saving threshold", default=10.0)
@@ -232,6 +238,7 @@ if __name__ == '__main__':
         restore=args.restore,
         reload_every=int(args.reload_every),
         log_every=int(args.log_every),
+        ckpt_every=int(args.ckpt_every),
         episodes=int(args.episodes),
         save_thresh=float(args.save_thresh), 
         final_exp_ep=int(args.final_exp_ep),
