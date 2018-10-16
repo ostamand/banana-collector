@@ -25,7 +25,10 @@ class VisualEnvironment():
             if done: 
                 break
         return (next_state, reward, done)
-    
+
+    def sample(self):
+        return np.random.randint(0, self.action_size)
+
     def reset(self, train=True):
         state = np.zeros((1, self.action_rpt, 84, 84))
 

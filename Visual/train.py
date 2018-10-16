@@ -48,6 +48,20 @@ def evaluate_policy(env, agent, episodes=100, steps=2000, eps=0.05):
         scores.append(score)
     return np.mean(scores)
 
+def initialize_replay_buffer(agent, env, steps=1000):
+    it = 0
+    state = env.reset() 
+    while it < steps:
+        action = env.sample()
+        import pdb; pdb.set_trace()
+        next_state, reward, done = env.step(action)
+        agent.step(state, action, reward, next_state, done, train=False)
+        it += 1
+        if done:
+            state = env.reset()
+        else:
+            state = next_state
+
 # https://stackoverflow.com/questions/31447442/difference-between-os-execl-and-os-execv-in-python
 def reload_process():
     if '--restore' not in sys.argv:
@@ -144,6 +158,11 @@ def train(episodes=2000,
 
     if 'reloading' in agent.run_params:
         restore = agent.run_params['restore']
+
+    # Initialize replay buffer with random actions 
+    logger.info("Initialize replay buffer with random actions...")
+    initialize_replay_buffer(agent, env, steps=replay_start_size)
+    import pdb; pdb.set_trace()
             
     # Train agent
     logger.info('Training')
@@ -232,6 +251,7 @@ if __name__ == '__main__':
     parser.add_argument("--final_beta", help="final beta", default=1.0)
     parser.add_argument("--prio", help="With or without prioritized experience replay", default=False)
     parser.add_argument("--lrate", help="Learning rate", default=5.0e-4)
+    parser.add_argument("--replay_start_size", help="Replay start size", default=5000)
     args = parser.parse_args()
 
     train(
@@ -247,7 +267,8 @@ if __name__ == '__main__':
         prio=bool(args.prio),
         ini_eps=float(args.ini_eps),
         final_eps=float(args.final_eps),
-        lrate=float(5.0e-4)
+        lrate=float(5.0e-4),
+        replay_start_size=int(args.replay_start_size)
     )
 
 
