@@ -53,7 +53,6 @@ def initialize_replay_buffer(agent, env, steps=1000):
     state = env.reset() 
     while it < steps:
         action = env.sample()
-        import pdb; pdb.set_trace()
         next_state, reward, done = env.step(action)
         agent.step(state, action, reward, next_state, done, train=False)
         it += 1
@@ -72,26 +71,26 @@ def reload_process():
     os.execv(sys.executable, ['python', __file__, *sys.argv[1:]])
 
 # Train 
-def train(episodes=2000, 
+def train(episodes=10000, 
           steps=2000, 
+          final_exp_ep=5000, 
           env_file='data/Banana_x86_x64',
           out_file=None, 
           restore=None, 
           from_start=True, 
           reload_every=1000, 
           ckpt_every=1000,
-          log_every=100, 
+          log_every=500, 
           action_repeat=4, 
           update_frequency=1, 
           batch_size=32, 
           gamma=0.99,
           lrate=5.0e-4, 
-          tau=0.05,
+          tau=0.01,
           replay_mem_size=500000, 
-          replay_start_size=5000, 
+          replay_start_size=10000, 
           ini_eps=1.0, 
-          final_eps=0.02, 
-          final_exp_ep=2000, 
+          final_eps=0.05, 
           save_thresh=5.0,
           prio=False, 
           min_priority=1e-6, 
@@ -162,7 +161,6 @@ def train(episodes=2000,
     # Initialize replay buffer with random actions 
     logger.info("Initialize replay buffer with random actions...")
     initialize_replay_buffer(agent, env, steps=replay_start_size)
-    import pdb; pdb.set_trace()
             
     # Train agent
     logger.info('Training')
