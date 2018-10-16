@@ -9,6 +9,7 @@ from model import QNetwork
 from visual_env import VisualEnvironment
 from badaii.agents.dbl_dqn import Agent
 from badaii.agents.p_dbl_dqn import Agent as PrioAgent
+from badaii.moving_result import MovingResult
 from q_metric import define_Q_metric, QMetric
 
 import pdb 
@@ -134,7 +135,7 @@ def train(episodes=2000,
         q_metrics = agent.run_params['q_metrics']
     else:
         avg_scores = []
-        scores = []
+        scores = MovingResult()
         last_saved_score = 0
         it = 0 
         ep_start = 0
@@ -168,8 +169,8 @@ def train(episodes=2000,
 
             # Update metrics  
             q_metrics.append((ep_i+1, q_metric.evaluate()))
-            scores.append((ep_i+1, score))
-            logger.info(f'ep={ep_i+1}/{episodes}, it={it}, epsilon={eps:.3f}, q_eval={q_metrics[-1][1]:.2f}, score={score:.2f}')
+            scores.add(score)
+            logger.info(f'ep={ep_i+1}/{episodes}, it={it}, epsilon={eps:.3f}, avg score={scores.last:.2f}, q_eval={q_metrics[-1][1]:.2f}')
 
             # Calculate score using policy epsilon=0.05 and 100 episodes
             if (ep_i+1) % log_every == 0:
