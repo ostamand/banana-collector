@@ -2,7 +2,7 @@ import torch
 import numpy as np
 
 def define_Q_metric(env, model, num_states):
-    states = np.zeros((num_states, env.action_rpt, 84, 84))
+    states = np.zeros((num_states, env.state_stack, 84, 84))
     metric = QMetric(states, model)
     _ = env.reset()
     for i in range(num_states):

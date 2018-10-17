@@ -81,7 +81,7 @@ def train(episodes=10000,
           reload_every=1000, 
           ckpt_every=1000,
           log_every=500, 
-          action_repeat=4, 
+          state_stack=4, 
           update_frequency=1, 
           batch_size=32, 
           gamma=0.99,
@@ -114,8 +114,8 @@ def train(episodes=10000,
     """
     # Define agent 
     logger.info('Creating agent...')
-    m = QNetwork(action_repeat, ACTION_SIZE, SEED)
-    m_t = QNetwork(action_repeat, ACTION_SIZE, SEED)
+    m = QNetwork(state_stack, ACTION_SIZE, SEED)
+    m_t = QNetwork(state_stack, ACTION_SIZE, SEED)
     
     if prio:
         agent = PrioAgent(m, m_t, ACTION_SIZE, 
@@ -131,7 +131,7 @@ def train(episodes=10000,
 
     # Create Unity Environment
     logger.info('Creating Unity virtual environment...')
-    env = VisualEnvironment(env_file, action_repeat)
+    env = VisualEnvironment(env_file, state_stack)
 
     # Restore params from checkpoint if needed 
     if 'reloading' in agent.run_params:
