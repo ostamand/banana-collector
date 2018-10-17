@@ -86,11 +86,11 @@ def train(episodes=10000,
           batch_size=32, 
           gamma=0.99,
           lrate=5.0e-4, 
-          tau=0.01,
+          tau=0.001,
           replay_mem_size=500000, 
           replay_start_size=10000, 
           ini_eps=1.0, 
-          final_eps=0.05, 
+          final_eps=0.10, 
           save_thresh=5.0,
           prio=False, 
           min_priority=1e-6, 
@@ -187,7 +187,7 @@ def train(episodes=10000,
             # Update metrics  
             q_metrics.append((ep_i+1, q_metric.evaluate()))
             scores.add(score)
-            logger.info(f'ep={ep_i+1}/{episodes}, it={it}, epsilon={eps:.3f}, avg score={scores.last:.2f}, q_eval={q_metrics[-1][1]:.2f}')
+            logger.info(f'ep={ep_i+1}/{episodes}, it={it}, epsilon={eps:.3f}, score={scores.last:.2f}, q_eval={q_metrics[-1][1]:.2f}')
 
             # Calculate score using policy epsilon=0.05 and 100 episodes
             if (ep_i+1) % log_every == 0:
