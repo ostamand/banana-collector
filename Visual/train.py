@@ -82,13 +82,13 @@ def train(episodes=10000,
           ckpt_every=1000,
           log_every=500, 
           state_stack=4, 
-          update_frequency=1, 
+          update_frequency=4, 
           batch_size=32, 
           gamma=0.99,
           lrate=5.0e-4, 
           tau=0.001,
-          replay_mem_size=500000, 
-          replay_start_size=10000, 
+          replay_mem_size=100000, 
+          training_starts=1000, 
           ini_eps=1.0, 
           final_eps=0.10, 
           save_thresh=5.0,
@@ -121,7 +121,7 @@ def train(episodes=10000,
         agent = PrioAgent(m, m_t, ACTION_SIZE, 
             seed=SEED, batch_size=batch_size, gamma = gamma, update_frequency = update_frequency,
             lrate = lrate, replay_size = replay_mem_size, tau = tau, restore = restore, 
-            min_priority = min_priority, alpha = alpha
+            min_priority = min_priority, alpha = alpha, training_starts = training_starts
         )
     else:
         agent = Agent(m, m_t, ACTION_SIZE,    
@@ -157,16 +157,11 @@ def train(episodes=10000,
 
     if 'reloading' in agent.run_params:
         restore = agent.run_params['restore']
-
-    # Initialize replay buffer with random actions 
-    logger.info("Initialize replay buffer with random actions...")
-    initialize_replay_buffer(agent, env, steps=replay_start_size)
             
     # Train agent
     logger.info('Training')
     for ep_i in range(ep_start, episodes):
             score = 0
-            agent.reset_episode()
             state = env.reset()
 
             # Decay exploration epsilon (linear decay)
@@ -249,7 +244,7 @@ if __name__ == '__main__':
     parser.add_argument("--final_beta", help="final beta", default=1.0)
     parser.add_argument("--prio", help="With or without prioritized experience replay", default=False)
     parser.add_argument("--lrate", help="Learning rate", default=5.0e-4)
-    parser.add_argument("--replay_start_size", help="Replay start size", default=5000)
+    parser.add_argument("--training_starts", help="Beginning of training iteration", default=1000)
     args = parser.parse_args()
 
     train(
@@ -266,7 +261,7 @@ if __name__ == '__main__':
         ini_eps=float(args.ini_eps),
         final_eps=float(args.final_eps),
         lrate=float(5.0e-4),
-        replay_start_size=int(args.replay_start_size)
+        training_starts=int(args.training_starts)
     )
 
 
