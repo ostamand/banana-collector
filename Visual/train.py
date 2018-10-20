@@ -48,19 +48,6 @@ def evaluate_policy(env, agent, episodes=100, steps=2000, eps=0.05):
         scores.append(score)
     return np.mean(scores)
 
-def initialize_replay_buffer(agent, env, steps=1000):
-    it = 0
-    state = env.reset() 
-    while it < steps:
-        action = env.sample()
-        next_state, reward, done = env.step(action)
-        agent.step(state, action, reward, next_state, done, train=False)
-        it += 1
-        if done:
-            state = env.reset()
-        else:
-            state = next_state
-
 # https://stackoverflow.com/questions/31447442/difference-between-os-execl-and-os-execv-in-python
 def reload_process():
     if '--restore' not in sys.argv:
@@ -71,9 +58,9 @@ def reload_process():
     os.execv(sys.executable, ['python', __file__, *sys.argv[1:]])
 
 # Train 
-def train(episodes=10000, 
+def train(episodes=2000, 
           steps=2000, 
-          final_exp_ep=5000, 
+          final_exp_ep=500, 
           env_file='data/Banana_x86_x64',
           out_file=None, 
           restore=None, 
@@ -83,14 +70,14 @@ def train(episodes=10000,
           log_every=500, 
           state_stack=4, 
           update_frequency=4, 
-          batch_size=32, 
+          batch_size=64, 
           gamma=0.99,
           lrate=5.0e-4, 
           tau=0.001,
-          replay_mem_size=100000, 
+          replay_mem_size=10000, 
           training_starts=1000, 
           ini_eps=1.0, 
-          final_eps=0.10, 
+          final_eps=0.01, 
           save_thresh=5.0,
           prio=False, 
           min_priority=1e-6, 
@@ -114,8 +101,8 @@ def train(episodes=10000,
     """
     # Define agent 
     logger.info('Creating agent...')
-    m = QNetwork(state_stack, ACTION_SIZE, SEED)
-    m_t = QNetwork(state_stack, ACTION_SIZE, SEED)
+    m = QNetwork(ACTION_SIZE, SEED)
+    m_t = QNetwork(ACTION_SIZE, SEED)
     
     if prio:
         agent = PrioAgent(m, m_t, ACTION_SIZE, 
@@ -182,7 +169,7 @@ def train(episodes=10000,
             # Update metrics  
             q_metrics.append((ep_i+1, q_metric.evaluate()))
             scores.add(score)
-            logger.info(f'ep={ep_i+1}/{episodes}, it={it}, epsilon={eps:.3f}, score={scores.last:.2f}, q_eval={q_metrics[-1][1]:.2f}')
+            logger.info(f'ep={ep_i+1}/{episodes}, it={it}, epsilon={eps:.3f}, reward={score:.2f}, score={scores.last:.2f}, q_eval={q_metrics[-1][1]:.2f}')
 
             # Calculate score using policy epsilon=0.05 and 100 episodes
             if (ep_i+1) % log_every == 0:
@@ -234,17 +221,18 @@ if __name__ == '__main__':
     parser.add_argument("--restore", help="Restore checkpoint")
     parser.add_argument('--reload_every', help="Reload env. every x episodes", default=1000)
     parser.add_argument("--ckpt_every", help="Save checkpoint every x episodes", default=1000)
-    parser.add_argument("--log_every", help="Log metric every number of episodes", default=10)
-    parser.add_argument("--episodes", help="Number of episodes to run", default=1000)
+    parser.add_argument("--log_every", help="Log metric every number of episodes", default=50)
+    parser.add_argument("--episodes", help="Number of episodes to run", default=2000)
     parser.add_argument("--save_thresh", help="Saving threshold", default=10.0)
-    parser.add_argument("--final_exp_ep", help="final exploaration episode", default=2500)
+    parser.add_argument("--final_exp_ep", help="final exploaration episode", default=500)
     parser.add_argument("--ini_eps", help="initial epsilon", default=1.0)
-    parser.add_argument("--final_eps", help="final epsilon", default=0.1)
+    parser.add_argument("--final_eps", help="final epsilon", default=0.01)
     parser.add_argument("--ini_beta", help="initial beta", default=0.4)
     parser.add_argument("--final_beta", help="final beta", default=1.0)
     parser.add_argument("--prio", help="With or without prioritized experience replay", default=False)
     parser.add_argument("--lrate", help="Learning rate", default=5.0e-4)
     parser.add_argument("--training_starts", help="Beginning of training iteration", default=1000)
+    parser.add_argument("--tau", help="Soft update rate", default=0.001)
     args = parser.parse_args()
 
     train(
@@ -261,7 +249,8 @@ if __name__ == '__main__':
         ini_eps=float(args.ini_eps),
         final_eps=float(args.final_eps),
         lrate=float(5.0e-4),
-        training_starts=int(args.training_starts)
+        training_starts=int(args.training_starts),
+        tau=float(args.tau)
     )
 
 

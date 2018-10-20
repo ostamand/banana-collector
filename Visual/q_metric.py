@@ -2,7 +2,8 @@ import torch
 import numpy as np
 
 def define_Q_metric(env, model, num_states):
-    states = np.zeros((num_states, env.state_stack, 84, 84))
+    # batch_size, channels (RGB), depth (state_stack), height, width
+    states = np.zeros((num_states, 3, env.state_stack, 84, 84))
     metric = QMetric(states, model)
     _ = env.reset()
     for i in range(num_states):
