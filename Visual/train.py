@@ -34,7 +34,7 @@ def save(agent, out_file, ep, it, avg_scores, scores, q_metrics, last_saved_scor
         }
     agent.save(out_file, run_params=params)
 
-def evaluate_policy(env, agent, episodes=100, steps=2000, eps=0.05):
+def evaluate_policy(env, agent, episodes=100, steps=2000, eps=0.01):
     scores = []
     for _ in range(episodes):
         score = 0

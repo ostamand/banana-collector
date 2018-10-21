@@ -1,10 +1,16 @@
-# Visual Banana Collector 
-
 # Visual Observations
 
 ## Setup on AWS
 
 Create a spot graphic compute instance with community AMI: ami-18642967.
+
+Clone this repository.
+
+```
+git clone https://github.com/ostamand/banana-collector.git
+git submodule update
+git submodule init
+```
 
 Activate the pytorch conda environment.
 
@@ -19,12 +25,13 @@ cd ml-agents/python
 pip install .
 ```
 
-Downgrade IPython. 
+Downgrade IPython and install tqm
 ```
 pip install -U ipython==6.5.0
+pip install tqdm 
 ```
 
-Start the X Server and make ubuntu use X Server for display.
+Start the X Server and make ubuntu use it for display.
 
 ```
 sudo /usr/bin/X :0 &
@@ -49,4 +56,10 @@ For example, to run the training for 1000 episodes, reload the environment each 
 
 ```
 python train.py --env_file VisualBanana_Linux/Banana.x86_64 --episodes 1000 --log_every 10 --reload_every 500 --save_thresh 5
+```
+
+To download files locally after training.
+
+```
+scp -i path/to/key user@ec2-xx-xx-xxx-xxx.compute-1.amazonaws.com:path/to/file .
 ```

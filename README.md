@@ -4,8 +4,8 @@ This repository includes the code needed to train agents to solve Udacity naviga
 
 The environment has two disctinct scenes. Refer to each specific page for setup, training and results.
 
-- [Vector Observation Space](Vector.md)
-- [Visual Observations](Visual.md)
+- [Vector Observation Space](Vector/Vector.md)
+- [Visual Observations](Visual/Visual.md)
 
 ## Installation
 
