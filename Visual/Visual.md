@@ -46,6 +46,8 @@ wget https://s3-us-west-1.amazonaws.com/udacity-drlnd/P1/Banana/VisualBanana_Lin
 unzip VisualBanana_Linux.zip
 ```
 
+## Training 
+
 For a list of argument availabe for the train script use the `--help` argument 
 
 ```
@@ -63,3 +65,11 @@ To download files locally after training.
 ```
 scp -i path/to/key user@ec2-xx-xx-xxx-xxx.compute-1.amazonaws.com:path/to/file .
 ```
+
+## Results 
+
+A [trained model](saved_models/p_dqn.ckpt) with an average score over 100 episodes of 13.59 is included in this repository.
+
+The environment is solved in 815 episodes. 
+
+For a more complete description of the results, refer to the [report](Report.md) page. 
