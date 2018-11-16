@@ -23,13 +23,13 @@ rm Banana_Linux_NoVis.zip
 ```
 
 ## Training 
-To train the model use this [notebook](Train_DQN.ipynb). If the installation is already completed, skip the related section and run all the cells of the notebook. 
+To train the model use this [notebook](Train_Vector_DQN.ipynb). If the installation is already completed, skip the related section and run all the cells of the notebook. 
 
-The hyperparameters and training characteristics are all grouped in one cell. Refer to the page [report](Report.md) for a description of all the variables as well as their baseline values. All variables can easily be modified before starting the training.
+The hyperparameters and training characteristics are all grouped in one cell. Refer to the page [report](vector/Report.md) for a description of all the variables as well as their baseline values. All variables can easily be modified before starting the training.
 
 ## Results 
-A [trained model](saved_models/model_dqn.ckpt) with an average score over 100 episodes of 16.93 is included in this repository.
+A [trained model](vector/saved_models/model_dqn.ckpt) with an average score over 100 episodes of 16.93 is included in this repository.
 
 For a more complete description of the results, refer to the [report](Report.md) page. 
 
-To visualise the agent, use this [notebook](Result_DQN.ipynb).
+To visualise the agent, use this [notebook](Result_Vector_DQN.ipynb).
