@@ -4,6 +4,13 @@ The environment state space has 37 dimensions and four discrete actions are avai
 
 In order to solve the environment, an agent must get an average score of +13 over 100 consecutive episodes.
 
+## Environment
+
+- [Linux](https://s3-us-west-1.amazonaws.com/udacity-drlnd/P1/Banana/Banana_Linux.zip)
+- [Mac OSX](https://s3-us-west-1.amazonaws.com/udacity-drlnd/P1/Banana/Banana.app.zip)
+- [Windows 32-bit](https://s3-us-west-1.amazonaws.com/udacity-drlnd/P1/Banana/Banana_Windows_x86.zip)
+- [Windows 32-bit](https://s3-us-west-1.amazonaws.com/udacity-drlnd/P1/Banana/Banana_Windows_x86_64.zip)
+
 ## Setup on AWS
 
 Download the Banana Collectors environment.

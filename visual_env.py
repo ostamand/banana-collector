@@ -1,5 +1,4 @@
 from unityagents import UnityEnvironment
-#from PIL import Image
 import numpy as np
 from collections import deque
 

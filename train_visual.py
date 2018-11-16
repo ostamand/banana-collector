@@ -1,20 +1,18 @@
-import numpy as np
 import argparse
 import sys
 import os
 import logging
-import datetime 
+import datetime
 
-from model import QNetwork
+import numpy as np
+from visual.model import QNetwork
 from visual_env import VisualEnvironment
-from badaii.agents.dbl_dqn import Agent
-from badaii.agents.p_dbl_dqn import Agent as PrioAgent
-from badaii.moving_result import MovingResult
+from dbl_dqn import Agent
+from p_dbl_dqn import Agent as PrioAgent
+from moving_result import MovingResult
 from q_metric import define_Q_metric, QMetric
 
-import pdb 
-
-ACTION_SIZE = 4 
+ACTION_SIZE = 4
 SEED = 0
 
 # Logging
@@ -24,10 +22,10 @@ logger.setLevel(logging.DEBUG)
 # Helpers
 
 def save(agent, out_file, ep, it, avg_scores, scores, q_metrics, last_saved_score):
-    params = { 
+    params = {
         'episodes': ep,
         'it': it,
-        'avg_scores': avg_scores, 
+        'avg_scores': avg_scores,
         'scores': scores,
         'q_metrics': q_metrics,
         'last_saved_score': last_saved_score
@@ -53,40 +51,40 @@ def reload_process():
     if '--restore' not in sys.argv:
         sys.argv.append('--restore')
         sys.argv.append(None)
-    idx = sum( [ i if arg=='--restore' else 0 for i, arg in enumerate(sys.argv)] )
+    idx = sum([ i if arg == '--restore' else 0 for i, arg in enumerate(sys.argv)])
     sys.argv[idx+1] = 'reload.ckpt'
     os.execv(sys.executable, ['python', __file__, *sys.argv[1:]])
 
-# Train 
-def train(episodes=2000, 
-          steps=2000, 
-          final_exp_ep=500, 
+# Train
+def train(episodes=2000,
+          steps=2000,
+          final_exp_ep=500,
           env_file='data/Banana_x86_x64',
-          out_file=None, 
-          restore=None, 
-          from_start=True, 
-          reload_every=1000, 
+          out_file=None,
+          restore=None,
+          from_start=True,
+          reload_every=1000,
           ckpt_every=1000,
-          log_every=500, 
-          state_stack=4, 
-          update_frequency=4, 
-          batch_size=64, 
+          log_every=500,
+          state_stack=4,
+          update_frequency=4,
+          batch_size=64,
           gamma=0.99,
-          lrate=5.0e-4, 
+          lrate=5.0e-4,
           tau=0.001,
-          replay_mem_size=10000, 
-          training_starts=1000, 
-          ini_eps=1.0, 
-          final_eps=0.01, 
+          replay_mem_size=10000,
+          training_starts=1000,
+          ini_eps=1.0,
+          final_eps=0.01,
           save_thresh=5.0,
-          prio=False, 
-          min_priority=1e-6, 
-          alpha=0.1, 
-          final_beta=1.0, 
+          prio=False,
+          min_priority=1e-6,
+          alpha=0.1,
+          final_beta=1.0,
           ini_beta=0.4
-           ):
+          ):
     """Train Double DQN
-    
+
     Args:
       episodes (int): Number of episodes to run 
       steps (int): Maximum number of steps per episode
@@ -95,7 +93,7 @@ def train(episodes=2000,
       restore (str): Restore the specified checkpoint before starting the training 
       from_start (bool): Force the training to start from the start
       reload_evey (int): Reload environment every # of episodes
-    
+
     Returns:
         None
     """
@@ -103,18 +101,20 @@ def train(episodes=2000,
     logger.info('Creating agent...')
     m = QNetwork(ACTION_SIZE, SEED)
     m_t = QNetwork(ACTION_SIZE, SEED)
-    
+
     if prio:
-        agent = PrioAgent(m, m_t, ACTION_SIZE, 
-            seed=SEED, batch_size=batch_size, gamma = gamma, update_frequency = update_frequency,
-            lrate = lrate, replay_size = replay_mem_size, tau = tau, restore = restore, 
-            min_priority = min_priority, alpha = alpha, training_starts = training_starts
-        )
+        agent = PrioAgent(m, m_t, ACTION_SIZE,
+                          seed=SEED, batch_size=batch_size, gamma=gamma,
+                          update_frequency=update_frequency, lrate=lrate,
+                          replay_size=replay_mem_size, tau=tau, restore=restore,
+                          min_priority=min_priority, alpha=alpha, training_starts=training_starts
+                          )
     else:
-        agent = Agent(m, m_t, ACTION_SIZE,    
-            seed=SEED, batch_size=batch_size, gamma = gamma, update_frequency = update_frequency,
-            lrate = lrate, replay_size = replay_mem_size, tau = tau, restore = restore
-        )
+        agent = Agent(m, m_t, ACTION_SIZE,
+                      seed=SEED, batch_size=batch_size,
+                      gamma=gamma, update_frequency=update_frequency,
+                      lrate=lrate, replay_size=replay_mem_size, tau=tau, restore=restore
+                      )
 
     # Create Unity Environment
     logger.info('Creating Unity virtual environment...')
@@ -128,7 +128,7 @@ def train(episodes=2000,
         logger.info('Restoring params...')
         it = agent.run_params['it']
         ep_start = agent.run_params['episodes']
-        scores= agent.run_params['scores']
+        scores = agent.run_params['scores']
         avg_scores = agent.run_params['avg_scores']
         last_saved_score = agent.run_params['last_saved_score']
         q_metric = QMetric(agent.run_params['q_metric_states'], m)
@@ -137,86 +137,86 @@ def train(episodes=2000,
         avg_scores = []
         scores = MovingResult()
         last_saved_score = 0
-        it = 0 
+        it = 0
         ep_start = 0
         q_metric = define_Q_metric(env, m, 100)
         q_metrics = []
 
     if 'reloading' in agent.run_params:
         restore = agent.run_params['restore']
-            
+
     # Train agent
     logger.info('Training')
     for ep_i in range(ep_start, episodes):
-            score = 0
-            state = env.reset()
+        score = 0
+        state = env.reset()
 
-            # Decay exploration epsilon (linear decay)
-            eps = max(final_eps,ini_eps-(ini_eps-final_eps)/final_exp_ep*ep_i)
-            bta = min(final_beta,ini_beta-(ini_beta-final_beta)/final_exp_ep*ep_i)
+        # Decay exploration epsilon (linear decay)
+        eps = max(final_eps, ini_eps-(ini_eps-final_eps)/final_exp_ep*ep_i)
+        bta = min(final_beta, ini_beta-(ini_beta-final_beta)/final_exp_ep*ep_i)
 
-            for _ in range(steps):
-                # Step agent 
-                action = agent.act(state, epsilon=eps)
-                next_state, reward, done = env.step(action)
-                agent.step(state, action, reward, next_state, done, beta=bta)
-                score += reward
-                state = next_state
-                if done:
-                    break
-                it+=1 
+        for _ in range(steps):
+            # Step agent
+            action = agent.act(state, epsilon=eps)
+            next_state, reward, done = env.step(action)
+            agent.step(state, action, reward, next_state, done, beta=bta)
+            score += reward
+            state = next_state
+            if done:
+                break
+            it+=1 
 
-            # Update metrics  
-            q_metrics.append((ep_i+1, q_metric.evaluate()))
-            scores.add(score)
-            logger.info(f'ep={ep_i+1}/{episodes}, it={it}, epsilon={eps:.3f}, reward={score:.2f}, score={scores.last:.2f}, q_eval={q_metrics[-1][1]:.2f}')
+        # Update metrics 
+        q_metrics.append((ep_i+1, q_metric.evaluate()))
+        scores.add(score)
+        logger.info(f'ep={ep_i+1}/{episodes}, it={it}, epsilon={eps:.3f}, reward={score:.2f}, score={scores.last:.2f}, q_eval={q_metrics[-1][1]:.2f}')
 
-            # Calculate score using policy epsilon=0.05 and 100 episodes
-            if (ep_i+1) % log_every == 0:
-                logger.info('Evaluating current policy...')
-                avg_score = evaluate_policy(env, agent)
-                avg_scores.append((ep_i+1, avg_score))
-                logger.info(f'Average score: {avg_score:.2f}')
+        # Calculate score using policy epsilon=0.05 and 100 episodes
+        if (ep_i+1) % log_every == 0:
+            logger.info('Evaluating current policy...')
+            avg_score = evaluate_policy(env, agent)
+            avg_scores.append((ep_i+1, avg_score))
+            logger.info(f'Average score: {avg_score:.2f}')
 
-                # Save agent if score is greater than threshold & last saved score
-                if avg_score > save_thresh and avg_score > last_saved_score:
-                    logger.info("Saving checkpoint...")
-                    save(agent, out_file, 
-                         ep_i+1, it, avg_scores, scores, q_metrics, last_saved_score
-                    )
+            # Save agent if score is greater than threshold & last saved score
+            if avg_score > save_thresh and avg_score > last_saved_score:
+                logger.info("Saving checkpoint...")
+                save(agent, out_file,
+                     ep_i+1, it, avg_scores, scores, q_metrics, last_saved_score
+                     )
 
-            # Save checkpoint if needed
-            if (ep_i+1) % ckpt_every == 0:  
-                s = os.path.splitext(out_file)
-                tm = datetime.datetime.today().strftime('%Y-%m-%d_%H-%M-%S')
-                filename = f'{s[0]}_{tm}{s[1]}'
-                logger.info(f'Saving checkpoint {filename}...')
-                save(
-                    agent, filename, ep_i+1, it, avg_scores, scores, q_metrics, last_saved_score
-                )
+        # Save checkpoint if needed
+        if (ep_i+1) % ckpt_every == 0:  
+            s = os.path.splitext(out_file)
+            tm = datetime.datetime.today().strftime('%Y-%m-%d_%H-%M-%S')
+            filename = f'{s[0]}_{tm}{s[1]}'
+            logger.info(f'Saving checkpoint {filename}...')
+            save(agent, filename, 
+                 ep_i+1, it, avg_scores, scores, q_metrics, last_saved_score
+                 )
 
-            # Reload the environment to fix memory leak issues 
-            if (ep_i+1) % reload_every == 0:
-                logger.info('Reloading environment...')
-                params = {
-                    'episodes': ep_i+1,
-                    'it': it,
-                    'restore': restore,
-                    'from_start': False, 
-                    'reloading': True,
-                    'avg_scores': avg_scores, 
-                    'last_saved_score': last_saved_score,
-                    'scores': scores,
-                    'q_metric_states': q_metric.states.cpu().numpy(),
-                    'q_metrics': q_metrics
-                    }
-                agent.save('reload.ckpt', run_params=params)
-                env.close()
-                reload_process()
+        # Reload the environment to fix memory leak issues 
+        if (ep_i+1) % reload_every == 0:
+            logger.info('Reloading environment...')
+            params = {
+                'episodes': ep_i+1,
+                'it': it,
+                'restore': restore,
+                'from_start': False, 
+                'reloading': True,
+                'avg_scores': avg_scores, 
+                'last_saved_score': last_saved_score,
+                'scores': scores,
+                'q_metric_states': q_metric.states.cpu().numpy(),
+                'q_metrics': q_metrics
+                }
+            agent.save('reload.ckpt', run_params=params)
+            env.close()
+            reload_process()
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description = 'Unity - Visual Banana Collector')  
-    parser.add_argument("--env_file", help="Location of Unity env. file", default='data/Banana_x86_x64')
+    parser = argparse.ArgumentParser(description='Unity - Visual Banana Collector')
+    parser.add_argument("--env_file", help="Location of Unity env. file", default='data/VisualBanana/Banana.exe')
     parser.add_argument("--out_file", help="Checkpoint file", default='dbl_dqn_agent.ckpt')
     parser.add_argument("--restore", help="Restore checkpoint")
     parser.add_argument('--reload_every', help="Reload env. every x episodes", default=1000)
@@ -252,5 +252,3 @@ if __name__ == '__main__':
         training_starts=int(args.training_starts),
         tau=float(args.tau)
     )
-
-
